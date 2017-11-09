@@ -1,12 +1,9 @@
-
-#if __has_include("RCTBridgeModule.h")
-#import "RCTBridgeModule.h"
-#else
 #import <React/RCTBridgeModule.h>
-#endif
 #import <React/RCTLog.h>
+#import <React/RCTEventEmitter.h>
+#import <CoreLocation/CoreLocation.h>
 
-@interface RNGeofence : NSObject <RCTBridgeModule>
-
+@interface RNGeofence : RCTEventEmitter <RCTBridgeModule,CLLocationManagerDelegate>
+@property (nonatomic, strong) CLLocationManager *locationManager;
 @end
   
