@@ -1,5 +1,5 @@
 
-import { NativeModules, NativeEventEmitter } from 'react-native';
+import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 
 const { RNGeofence } = NativeModules;
 const EventEmitter = new NativeEventEmitter(RNGeofence || {});
@@ -10,9 +10,33 @@ export const GeofenceEvent = {
 }
 
 const Geofence = {};
+const GeofenceConfigSchema = {
+    "title": "GeofenceConfig",
+    "type": "object",
+    "properties": {
+        "identifier": { 
+            "type": "string", 
+            "description": "Unique identifier of each geofence. Needed for removing specific geofence and identified entered/exit regions" 
+        },
+        "latitude": { 
+            "type": "number"
+        },
+        "longitude": { 
+            "type": "number"
+        },
+        "radius": { 
+            "type": "integer"
+        },
+    },
+    "required": ["identifier", "latitude", "longitude", "radius"]
+};
+Geofence.hasPlayServices = (params = { autoResolve: true }) => {
+    if(Platform.OS === 'ios') return Promise.resolve(true);
+    else return RNGeofence.playServicesAvailable(params.autoResolve);
+};
 Geofence.initialize = () => RNGeofence.initialize();
-Geofence.addGeofence = (config) => RNGeofence.addGeofence(config);
-Geofence.addGeofences = (configs) => RNGeofence.addGeofences(configs);
+Geofence.addGeofence = (config) => RNGeofence.addGeofence(config);  // Refer to GeofenceConfigSchema
+Geofence.addGeofences = (configs) => RNGeofence.addGeofences(configs);  // Refer to GeofenceConfigSchema
 Geofence.removeGeofence = (identifier) => RNGeofence.removeGeofence(identifier);
 Geofence.removeAllGeofences = () => RNGeofence.removeAllGeofences();
 Geofence.on = (event, callback) => {
