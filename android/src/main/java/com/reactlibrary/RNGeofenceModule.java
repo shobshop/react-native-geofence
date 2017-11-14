@@ -258,7 +258,7 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
     // The INITIAL_TRIGGER_ENTER flag indicates that geofencing service should trigger a
     // GEOFENCE_TRANSITION_ENTER notification when the geofence is added and if the device
     // is already inside that geofence.
-    builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER | GeofencingRequest.INITIAL_TRIGGER_EXIT);
+    builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER);
     builder.addGeofences(geofenceList);
 
     // Return a GeofencingRequest.
