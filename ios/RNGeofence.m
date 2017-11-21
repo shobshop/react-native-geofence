@@ -31,17 +31,6 @@ RCT_EXPORT_MODULE()
 RCT_EXPORT_METHOD(initialize:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
-    if(![CLLocationManager locationServicesEnabled]) {
-        // handle this
-        NSDictionary *userInfo = @{
-                                   NSLocalizedDescriptionKey: NSLocalizedString(@"Location services not enabled", nil),
-                                   NSLocalizedFailureReasonErrorKey: NSLocalizedString(@"Location services not enabled", nil),
-                                   NSLocalizedRecoverySuggestionErrorKey: NSLocalizedString(@"Turn on location services in iOS Settings and try again", nil)
-                                   };
-        NSError *error = [NSError errorWithDomain:[[NSBundle mainBundle] bundleIdentifier] code:-100 userInfo:userInfo];
-        reject(@"location_services_not_enabled", @"Location services not enabled", error);
-        return;
-    }
     if(![CLLocationManager isMonitoringAvailableForClass:[CLCircularRegion class]]) {
         NSDictionary *userInfo = @{
                                    NSLocalizedDescriptionKey: NSLocalizedString(@"Monitoring is not available for this device", nil),
@@ -111,6 +100,12 @@ RCT_EXPORT_METHOD(removeAllGeofences) {
             [_locationManager stopMonitoringForRegion: region];
         }
     });
+}
+
+RCT_EXPORT_METHOD(locationServicesEnabled:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    resolve(@([CLLocationManager locationServicesEnabled]));
 }
 
 - (CLCircularRegion*)mapDictionaryToRegion:(NSDictionary*)dictionary

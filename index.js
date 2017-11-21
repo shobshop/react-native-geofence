@@ -34,6 +34,10 @@ Geofence.hasPlayServices = (params = { autoResolve: true }) => {
     if(Platform.OS === 'ios') return Promise.resolve(true);
     else return RNGeofence.playServicesAvailable(params.autoResolve);
 };
+Geofence.locationServicesEnabled = (params = { autoResolve: true }) => {
+    if(Platform.OS === 'ios') return RNGeofence.locationServicesEnabled();
+    else return Promise.resolve(true);  // TODO Implement Android part
+};
 Geofence.initialize = () => RNGeofence.initialize();
 Geofence.addGeofence = (config) => RNGeofence.addGeofence(config);  // Refer to GeofenceConfigSchema
 Geofence.addGeofences = (configs) => RNGeofence.addGeofences(configs);  // Refer to GeofenceConfigSchema
