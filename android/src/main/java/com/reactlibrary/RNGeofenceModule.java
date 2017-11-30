@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
+import android.content.Context;
+import android.location.LocationManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import com.facebook.react.bridge.ReactContext;
@@ -219,9 +221,24 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void locationServicesEnabled(Promise promise) {
+    final Activity activity = getCurrentActivity();
+    LocationManager locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
+    Boolean isEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+    promise.resolve(isEnabled);
+  }
+
+  @ReactMethod
   public void removeAllGeofences() {
     Log.i(REACT_CLASS, "Remove all geofences");
     LocationServices.GeofencingApi.removeGeofences(mGoogleApiClient, getGeofencePendingIntent());
+  }
+
+  @ReactMethod
+  public void openAndroidLocationSettings() {
+    final Activity activity = getCurrentActivity();
+    final String action = android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS;
+    activity.startActivity(new Intent(action));
   }
 
 
