@@ -1,26 +1,25 @@
 
-package com.reactlibrary;
+package com.shobshop.react.geofence;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.Callback;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.List;
 
 import android.content.Context;
-import android.location.LocationManager;
+import android.os.Build;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
+
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableArray;
+
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.android.gms.common.api.Result;
@@ -35,23 +34,25 @@ import com.google.android.gms.common.ConnectionResult;
 import android.os.Bundle;
 import com.facebook.react.bridge.UiThreadUtil;
 import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
 import com.google.android.gms.common.GoogleApiAvailability;
 
 public class RNGeofenceModule extends ReactContextBaseJavaModule {
 
   private final ReactApplicationContext reactContext;
+  private Context mContext;
 
   public static final String ENTER_GEOFENCE = "RNGeofence:EnterGeofence";
   public static final String EXIT_GEOFENCE = "RNGeofence:ExitGeofence";
+  public static final String DEVICE_BOOT_COMPLETED = "RNGeofence:DeviceBootCompleted";
   public static final String REACT_CLASS = "RNGeofenceModule";
 
   private GoogleApiClient mGoogleApiClient;
   private PendingIntent mGeofencePendingIntent;
 
-  public RNGeofenceModule(ReactApplicationContext reactContext) {
+  public RNGeofenceModule(ReactApplicationContext reactContext, Context context) {
     super(reactContext);
     this.reactContext = reactContext;
+    mContext = context;
   }
 
   @Override
@@ -64,6 +65,7 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
     final Map<String, Object> constants = new HashMap<>();
     constants.put("ENTER_GEOFENCE", ENTER_GEOFENCE);
     constants.put("EXIT_GEOFENCE", EXIT_GEOFENCE);
+    constants.put("DEVICE_BOOT_COMPLETED", DEVICE_BOOT_COMPLETED);
     return constants;
   }
 
@@ -71,14 +73,8 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
   public void initialize(final Promise promise) {
     // Create an instance of GoogleAPIClient.
     if (mGoogleApiClient == null) {
-      final Activity activity = getCurrentActivity();
 
-      if (activity == null) {
-        promise.reject("NO_ACTIVITY", "NO_ACTIVITY");
-        return;
-      }
-
-      activity.runOnUiThread(new Runnable() {
+      UiThreadUtil.runOnUiThread(new Runnable() {
         @Override
         public void run() {
           GoogleApiClient.ConnectionCallbacks mConnectionListener = new GoogleApiClient.ConnectionCallbacks() {
@@ -101,7 +97,7 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
               Log.i(REACT_CLASS, "Connection failed: ConnectionResult.getErrorCode() = " + connectionResult.getErrorCode());
             }
           };
-          mGoogleApiClient = new GoogleApiClient.Builder(activity.getBaseContext())
+          mGoogleApiClient = new GoogleApiClient.Builder(mContext)
                   .addApi(LocationServices.API)
                   .build();
           mGoogleApiClient.registerConnectionCallbacks(mConnectionListener);
@@ -109,24 +105,21 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
           mGoogleApiClient.connect();
         }
       });
+    } else {
+      promise.resolve(true);
     }
   }
 
   @ReactMethod
   public void playServicesAvailable(boolean autoresolve, Promise promise) {
-    final Activity activity = getCurrentActivity();
-
-    if (activity == null) {
-      promise.reject("NO_ACTIVITY", "no activity");
-      return;
-    }
 
     GoogleApiAvailability googleApiAvailability = GoogleApiAvailability.getInstance();
-    int status = googleApiAvailability.isGooglePlayServicesAvailable(activity);
+    int status = googleApiAvailability.isGooglePlayServicesAvailable(mContext);
 
     if(status != ConnectionResult.SUCCESS) {
       promise.reject("" + status, "Play services not available");
-      if(autoresolve && googleApiAvailability.isUserResolvableError(status)) {
+      Activity activity = getCurrentActivity();
+      if(autoresolve && googleApiAvailability.isUserResolvableError(status) && activity != null) {
         googleApiAvailability.getErrorDialog(activity, status, 2404).show();
       }
     }
@@ -139,14 +132,7 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
   public void addGeofence(final ReadableMap config, final Promise promise) {
     Log.i(REACT_CLASS, "Add geofence: " + config);
 
-    final Activity activity = getCurrentActivity();
-
-    if (activity == null) {
-      promise.reject("NO_ACTIVITY", "NO_ACTIVITY");
-      return;
-    }
-
-    activity.runOnUiThread(new Runnable() {
+    UiThreadUtil.runOnUiThread(new Runnable() {
       ResultCallback mGeofenceCreationListener = new ResultCallback() {
         @Override
         public void onResult(@NonNull Result result) {
@@ -174,15 +160,8 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void addGeofences(final ReadableArray configs, final Promise promise) {
     Log.i(REACT_CLASS, "Add geofences: " + configs);
-    
-    final Activity activity = getCurrentActivity();
 
-    if (activity == null) {
-      promise.reject("NO_ACTIVITY", "NO_ACTIVITY");
-      return;
-    }
-
-    activity.runOnUiThread(new Runnable() {
+    UiThreadUtil.runOnUiThread(new Runnable() {
       ResultCallback mGeofenceCreationListener = new ResultCallback() {
         @Override
         public void onResult(@NonNull Result result) {
@@ -222,10 +201,24 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void locationServicesEnabled(Promise promise) {
-    final Activity activity = getCurrentActivity();
-    LocationManager locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
-    Boolean isEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-    promise.resolve(isEnabled);
+    int locationMode = 0;
+    String locationProviders;
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
+      try {
+        locationMode = Settings.Secure.getInt(mContext.getContentResolver(), Settings.Secure.LOCATION_MODE);
+
+      } catch (Settings.SettingNotFoundException e) {
+        e.printStackTrace();
+        promise.resolve(false);
+      }
+
+      promise.resolve(locationMode != Settings.Secure.LOCATION_MODE_OFF);
+
+    }else{
+      locationProviders = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+      promise.resolve(!TextUtils.isEmpty(locationProviders));
+    }
   }
 
   @ReactMethod
@@ -284,11 +277,11 @@ public class RNGeofenceModule extends ReactContextBaseJavaModule {
 
   private Geofence createGeofence(String identifier, double latitude, double longitude, float radius) {
     return new Geofence.Builder()
-      // Set the request ID of the geofence. This is a string to identify this geofence.
-      .setRequestId(identifier)
-      .setCircularRegion(latitude, longitude, radius)
-      .setExpirationDuration(Geofence.NEVER_EXPIRE)
-      .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_EXIT)
-      .build();
+            // Set the request ID of the geofence. This is a string to identify this geofence.
+            .setRequestId(identifier)
+            .setCircularRegion(latitude, longitude, radius)
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_EXIT)
+            .build();
   }
 }

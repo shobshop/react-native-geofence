@@ -7,6 +7,7 @@ const EventEmitter = new NativeEventEmitter(RNGeofence || {});
 export const GeofenceEvent = {
     Enter: RNGeofence.ENTER_GEOFENCE,
     Exit: RNGeofence.EXIT_GEOFENCE,
+    DeviceBootCompleted: RNGeofence.DEVICE_BOOT_COMPLETED,
 }
 
 const Geofence = {};
