@@ -7,7 +7,7 @@ const EventEmitter = new NativeEventEmitter(RNGeofence || {});
 export const GeofenceEvent = {
     Enter: RNGeofence.ENTER_GEOFENCE,
     Exit: RNGeofence.EXIT_GEOFENCE,
-    DeviceBootCompleted: RNGeofence.DEVICE_BOOT_COMPLETED,
+    DeviceBootCompleted: RNGeofence.DEVICE_BOOT_COMPLETED,  // is null in iOS
 }
 
 const Geofence = {};
@@ -48,6 +48,7 @@ Geofence.on = (event, callback) => {
     if (!Object.values(GeofenceEvent).includes(event)) {
         throw new Error(`Invalid geofence event subscription, use import {GeofenceEvent} from 'RNGeofence' to avoid typo`);
     };
-    return EventEmitter.addListener(event, callback);
+    if(event) return EventEmitter.addListener(event, callback);
+    else return null;
 };
 export default Geofence;
