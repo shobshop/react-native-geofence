@@ -223,7 +223,7 @@ RCT_EXPORT_METHOD(locationServicesEnabled:(RCTPromiseResolveBlock)resolve
     // Sort geofences by distance from user location
     NSArray<CLCircularRegion *> *sortedRegions = [self sortRegions:regionsToMonitor byLocation:userLocation];
     // Truncate to [maximumMonitoringRegionCount-1] geofences
-    NSArray<CLCircularRegion *> *nearbyRegions = [sortedRegions subarrayWithRange:NSMakeRange(0, maximumMonitoringRegionCount-1)];
+    NSArray<CLCircularRegion *> *nearbyRegions = [sortedRegions subarrayWithRange:NSMakeRange(0, MIN(maximumMonitoringRegionCount-1, [sortedRegions count]))];
     // Start monitoring each geofences
     for(CLCircularRegion *region in nearbyRegions) {
         CLLocation *regionCenter = [[CLLocation alloc] initWithLatitude:region.center.latitude longitude:region.center.longitude];
